@@ -23,14 +23,20 @@ var (
 	do_build      = flag.Bool("build", false, "Build program")
 	never_run     = flag.Bool("no-run", false, "Do not run")
 	race_detector = flag.Bool("race", false, "Run program and tests with the race detector")
+	mod_vendor = flag.Bool("mod-vendor", false, "Run program using mod vendor")
 )
 
 func install(buildpath, lastError string) (installed bool, errorOutput string, err error) {
 	cmdline := []string{"go", "get"}
 
+	if *mod_vendor {
+		cmdline = append(cmdline, "-mod=vendor")
+	}
+
 	if *race_detector {
 		cmdline = append(cmdline, "-race")
 	}
+
 	cmdline = append(cmdline, buildpath)
 
 	// setup the build command, use a shared buffer for both stdOut and stdErr
@@ -59,6 +65,10 @@ func install(buildpath, lastError string) (installed bool, errorOutput string, e
 func test(buildpath string) (passed bool, err error) {
 	cmdline := []string{"go", "test"}
 
+	if *mod_vendor {
+		cmdline = append(cmdline, "-mod=vendor")
+	}
+
 	if *race_detector {
 		cmdline = append(cmdline, "-race")
 	}
@@ -84,6 +94,10 @@ func test(buildpath string) (passed bool, err error) {
 
 func gobuild(buildpath string) (passed bool, err error) {
 	cmdline := []string{"go", "build"}
+
+	if *mod_vendor {
+		cmdline = append(cmdline, "-mod=vendor")
+	}
 
 	if *race_detector {
 		cmdline = append(cmdline, "-race")
@@ -125,7 +139,8 @@ func run(binName, binPath string, args []string) (runch chan bool) {
 			if !relaunch {
 				continue
 			}
-			cmd := exec.Command(binPath, args...)
+			cmd := exec.Command(binPath, []string{"-race", "-mod=vendor"}...)
+			log.Print(cmd)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			log.Print(cmdline)
